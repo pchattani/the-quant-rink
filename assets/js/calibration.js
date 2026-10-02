@@ -2,9 +2,9 @@
  *
  * 1. Expected goals against MoneyPuck's xG on the same shots (log-loss, AUC, Brier, reliability, by
  *    season and by strength); MoneyPuck's values are a published benchmark, credited where shown.
- * 2. The game model against the closing lines (ESPN's DraftKings and other books, 2023–24 on): win
+ * 2. The game model against the closing lines (ESPN's DraftKings and other books, 2019–20 on; opening and closing blocks from 2022–23): win
  *    probability, puck line and total, with reliability.
- * 3. The game model against Elo and simple baselines on every game from 2010–11.
+ * 3. The game model against Elo and simple baselines on every game from 2009–10 (the first season a warm-up).
  * 4. Season odds (playoffs, division, Presidents' Trophy, Cup) scored at fixed checkpoints of past seasons.
  * 5. Stabilisation: the sample at which each catalogue metric is 70% signal.
  * Every sentence of "What it shows" is computed from the numbers, and a gap smaller than the noise is called
@@ -124,12 +124,14 @@ function note(x) { return x && x.note ? '<div class="pg-note gq-note">' + K().es
 function gamesSection(d, out, read) {
   const k = K();
   const G = get(d, ['game_model', 'games', 'backtest']);
-  if (!G || typeof G !== 'object' || !(G.metrics || G.pooled || G.vs_market || G.metrics_vs_market)) { out.push(k.card('The game model against the closing line', '', k.muted('The walk-forward backtest (every game priced with only what was known before it, against the closing lines from 2023–24 and against Elo from 2010–11) has not been published yet.'))); return; }
+  if (!G || typeof G !== 'object' || !(G.metrics || G.pooled || G.vs_market || G.metrics_vs_market)) { out.push(k.card('The game model against the closing line', '', k.muted('The walk-forward backtest (every game priced with only what was known before it, against the closing lines from 2019–20 and against Elo from 2009–10) has not been published yet.'))); return; }
   const ALL = scorers(G.metrics || (G.pooled || {}).win || G.pooled || {}), VM = scorers(G.metrics_vs_market || G.vs_market || {});
-  const seasons = (G.seasons || Object.keys(G.per_season || {})).map(String).filter(s => k.sid(s)).sort();
+  const PSD = G.per_season || G.by_season || {};
+  const seasons = (Object.keys(PSD).length ? Object.keys(PSD) : (G.seasons || [])).map(String).filter(s => k.sid(s)).sort();
+  const warm = s => !!((PSD[s] || {}).warm_up) || (G.warm_up || []).map(String).indexOf(String(s)) >= 0;
   const m = VM.model || VM.ours || ALL.model || ALL.ours, mk = VM.market_ml || VM.market || VM.close || ALL.market_ml;
   let h = '<div class="card"><div class="card-header">The game model against the closing line <span class="card-sub">Walk-forward' + (seasons.length ? ' ' + k.esc(k.sLabel(seasons[0])) + ' to ' + k.esc(k.sLabel(seasons[seasons.length - 1])) : '') +
-    ': team strength refitted before every game day from earlier games only; y = 1 when the home team wins (overtime and shootouts included). The closing lines are ESPN\'s (DraftKings first, then other books) from 2023–24, de-vigged.</span><span class="gq-ctl"><select id="cal-scope"><option value="vm">games with a closing line</option><option value="all">every game</option>' + seasons.slice().reverse().map(s => '<option value="s' + s + '">' + k.esc(k.sLabel(s)) + '</option>').join('') + '</select></span></div>';
+    ': team strength refitted before every game day from earlier games only; y = 1 when the home team wins (overtime and shootouts included). The closing lines are ESPN\'s (DraftKings first, then other books) from 2019–20, de-vigged (the close where ESPN has one, 2022–23 on; else the last line it lists).</span><span class="gq-ctl"><select id="cal-scope"><option value="vm">games with a closing line</option><option value="all">every game</option>' + seasons.slice().reverse().map(s => '<option value="s' + s + '">' + k.esc(k.sLabel(s)) + (warm(s) ? ' (warm-up, code defaults)' : '') + '</option>').join('') + '</select></span></div>';
   h += k.tiles([k.tile('Games scored', k.int(G.games || G.n || (ALL.model || ALL.ours || {}).n), seasons.length ? seasons.length + ' seasons' : ''),
     m ? k.tile('Model log-loss', k.num(m.logloss, 4), 'Brier ' + k.num(m.brier, 4) + (mk ? ' · same games as the close' : '')) : '',
     mk ? k.tile('Closing line', k.num(mk.logloss, 4), 'de-vigged · Brier ' + k.num(mk.brier, 4)) : '',
@@ -138,7 +140,7 @@ function gamesSection(d, out, read) {
   h += '<div class="gq-pad" id="cal-table"></div>';
   h += '<div class="grid-2"><div><div class="gq-sub-head">Reliability: who wins</div><div id="cal-rel" class="gf-chart"></div></div><div><div class="gq-sub-head">Log-loss by season</div><div id="cal-years" class="gf-chart"></div></div></div>';
   if (G.books && Object.keys(G.books).length) h += '<div class="gq-sub-head">Closing lines by book, each against the model on the same games</div><div id="cal-books"></div>';
-  h += '<div class="grid-2"><div><div class="gq-sub-head">Puck line: P(home covers the closing line)</div><div id="cal-pl"></div><div id="cal-pl-c" class="gf-chart"></div></div>' +
+  h += '<div class="grid-2"><div><div class="gq-sub-head">Puck line: P(home ' + (G.puck_line || G.spread || G.ats ? 'covers the closing line' : 'wins by two or more, the −1.5') + ')</div><div id="cal-pl"></div><div id="cal-pl-c" class="gf-chart"></div></div>' +
     '<div><div class="gq-sub-head">Totals: P(over the closing total)</div><div id="cal-tot"></div><div id="cal-tot-c" class="gf-chart"></div></div></div>' + note(G) + '</div>';
   out.push(h);
   if (m && mk && k.isNum(m.logloss) && k.isNum(mk.logloss)) {
@@ -150,11 +152,11 @@ function gamesSection(d, out, read) {
   const e = ALL.elo, mm = ALL.model || ALL.ours;
   if (e && mm && k.isNum(e.logloss) && k.isNum(mm.logloss)) read.push('<p><strong>Against Elo.</strong> Over ' + k.int(mm.n) + ' games' + (seasons.length ? ' from ' + k.esc(k.sLabel(seasons[0])) : '') + ' the model scores ' + k.num(mm.logloss, 4) + ' and Elo ' + k.num(e.logloss, 4) + ': the model is ' + WORD[verdict(mm.logloss, e.logloss, true, mm.se)] + '.' +
     (ALL.home && k.isNum(ALL.home.logloss) ? ' Home ice alone scores ' + k.num(ALL.home.logloss, 4) + '.' : '') + '</p>');
-  [[G.puck_line || G.spread || G.ats, 'covers', 'Puck line'], [G.totals || G.total, 'overs', 'Totals']].forEach(z => { if (z[0] && z[0].n) side(null, null, z[0], z[1], read, z[2], true); });
+  [[G.puck_line || G.spread || G.ats || G.puck_line_home, 'covers', 'Puck line'], [G.totals || G.total || G.totals_model, 'overs', 'Totals']].forEach(z => { if (z[0] && z[0].n) side(null, null, z[0], z[1], read, z[2], true); });
   setTimeout(() => {
     const drawT = v => {
       let src = v === 'all' ? ALL : (Object.keys(VM).length ? VM : ALL);
-      if (v.charAt(0) === 's') src = scorers((G.per_season || {})[v.slice(1)] || {});
+      if (v.charAt(0) === 's') src = scorers(PSD[v.slice(1)] || {});
       k.set('cal-table', scoreTable(src, { nLabel: 'Games' }));
     };
     drawT('vm');
@@ -164,7 +166,7 @@ function gamesSection(d, out, read) {
     const rel = Object.keys(SRC).filter(x => SRC[x].bins.length).slice(0, 4).map(x => ({ name: lab(x), colour: COL[x] || '#8b949e', bins: SRC[x].bins }));
     if (rel.length) k.reliability('cal-rel', rel, { xt: 'Forecast P(home win)', yt: 'Home win rate', minN: 20, min: 0.2, max: 0.8 }); else k.empty('cal-rel', 'No reliability bins.');
     const PS = {};
-    Object.keys(G.per_season || {}).forEach(s => { const z = scorers(G.per_season[s]); PS[s] = {}; Object.keys(z).forEach(x => { PS[s][x] = z[x].logloss; }); });
+    Object.keys(PSD).forEach(s => { const z = scorers(PSD[s]); PS[s] = {}; Object.keys(z).forEach(x => { PS[s][x] = z[x].logloss; }); });
     bySeries('cal-years', PS);
     const books = G.books || {};
     if (Object.keys(books).length) {
@@ -172,8 +174,8 @@ function gamesSection(d, out, read) {
         Object.keys(books).map(b => { const x = books[b], bk = x.book || x, mo = x.model_same_games || x.model || {};
           return [{ v: b, html: '<strong>' + k.esc(b) + '</strong>' }, { v: bk.n, html: k.int(bk.n) }, { v: bk.logloss, html: k.num(bk.logloss, 4) }, { v: mo.logloss, html: k.num(mo.logloss, 4) }, { v: '', html: vchip(verdict(mo.logloss, bk.logloss, true)) }]; }), { compact: true }));
     }
-    side('cal-pl', 'cal-pl-c', G.puck_line || G.spread || G.ats, 'covers', [], 'Puck line');
-    side('cal-tot', 'cal-tot-c', G.totals || G.total, 'overs', [], 'Totals');
+    side('cal-pl', 'cal-pl-c', G.puck_line || G.spread || G.ats || G.puck_line_home, 'covers', [], 'Puck line');
+    side('cal-tot', 'cal-tot-c', G.totals || G.total || G.totals_model, 'overs', [], 'Totals');
   }, 0);
 }
 
@@ -253,7 +255,7 @@ function render(el) {
     const ok = d && d.ok !== false;
     const out = [], read = [];
     let h = '<div class="card"><div class="card-header">Calibration <span class="card-sub">Does the modelling hold up? Every number below is computed out of sample, and every comparison is with the best public alternative.' + (d && (d.generated_at || d.updated_at) ? ' Generated ' + k.esc(k.fmtDate(d.generated_at || d.updated_at, { year: true })) + '.' : '') + '</span></div>';
-    if (!ok) h += '<div class="gq-read"><p>The backtest has not been published yet' + (d && d.reason ? ' (' + k.esc(k.cleanDesc(d.reason)) + ')' : '') + '. When it is, this page scores our expected goals against MoneyPuck\'s on the same shots, the game model against the closing lines from 2023–24 and against Elo from 2010–11, the puck line and totals, and season odds. Ties will be reported as ties.</p></div>';
+    if (!ok) h += '<div class="gq-read"><p>The backtest has not been published yet' + (d && d.reason ? ' (' + k.esc(k.cleanDesc(d.reason)) + ')' : '') + '. When it is, this page scores our expected goals against MoneyPuck\'s on the same shots, the game model against the closing lines from 2019–20 and against Elo from 2009–10, the puck line and totals, and season odds. Ties will be reported as ties.</p></div>';
     h += '</div>';
     if (ok) { xgSection(d, out, read); gamesSection(d, out, read); seasonOdds(d, out, read); }
     stabilisation(ok ? d : {}, [['Skaters', k.catOf(res[1])], ['Goalies', k.catOf(res[2])]], out);

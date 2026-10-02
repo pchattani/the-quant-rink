@@ -261,7 +261,7 @@ function shotsPanel(ctx) {
   k.shotMap(b, pts, { team: ctx.team, colour: k.teamColour(ctx.team), empty: 'No shots on file for this skater this season.' });
   const lim = pts.length >= 400 ? ' The map shows his latest 400 attempts.' : '';
   if (note) note.innerHTML = 'Attacking right; the goal line is 11 ft from the end boards. ' + (G ? 'The heatmap is ' + k.int(G.n) + ' unblocked attempts (all situations, regular season) on a 5 ft grid, lightly smoothed; against the league it is the share of his attempts from each area minus the league\'s share at 5 on 5 (red: he shoots from there more often), so it shows where he shoots from, not how much. ' : '') +
-    'On the map, dots are sized by xG and filled dots are goals; the filters above it pick the strength and period.' + lim + ' Before 2020–21, NHL shot coordinates were recorded by arena scorers and are arena-adjusted (see the <a href="#/methodology/limitations">limitations</a>).';
+    'On the map, dots are sized by xG and filled dots are goals; the filters above it pick the strength and period.' + lim + ' Before 2023–24, NHL shot coordinates carry arena scorer bias and are arena-adjusted (see the <a href="#/methodology/limitations">limitations</a>).';
   k.wireToggle(document, 'pp-shot-m', v => { ST.shots = v; drawHeat(); });
 }
 

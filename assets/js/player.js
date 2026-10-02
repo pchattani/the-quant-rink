@@ -89,6 +89,7 @@ function render(el, params, state) {
     const info = k.NAMES[pid] || {};
     const pos0 = (career && career.pos) || ((sk && sk.players[pid]) || (gk && gk.players[pid]) || {}).pos || info.pos || '';
     const goalie = k.groupOf(pos0) === 'G' || (!!gk && !!gk.players[pid] && !(sk && sk.players[pid]));
+    if (goalie) RK.markNav('goalies');
     const cat = goalie ? gk : sk;
     const cp = cat && cat.players[pid] ? cat.players[pid] : null;
     if (!career && !cp) {

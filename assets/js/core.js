@@ -1390,7 +1390,7 @@ return {
   // state and routing
   state: state, route: route, go: go, parseHash: parseHash, onLeave: onLeave, interval: interval, render: render, routeEntry: routeEntry,
   ROUTES: ROUTES, HANDLERS: HANDLERS, TITLES: TITLES, SITE: SITE, FIRST_SEASON: FIRST_SEASON, MONEYPUCK_CREDIT: MONEYPUCK_CREDIT,
-  setSeason: setSeason, setMeta: setMeta,
+  setSeason: setSeason, setMeta: setMeta, markNav: markNav,
   // data
   load: load, loadAll: loadAll, uncache: uncache, refreshIndex: refreshIndex, liveRefresh: liveRefresh, ok: ok, reason: reason, cached: cached,
   ypath: ypath, loadYear: loadYear, gamePath: gamePath, loadGame: loadGame, playerPath: playerPath, loadPlayer: loadPlayer,

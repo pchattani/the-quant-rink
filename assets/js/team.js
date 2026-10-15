@@ -47,6 +47,8 @@ function render(el, params, state) {
       k.tile('Playoffs', k.isNum(od.p_playoffs) ? k.pct(od.p_playoffs, 1) : '—', k.isNum(pp) ? k.num(pp, 1) + ' points projected' : 'season simulation'),
       k.tile('Stanley Cup', k.isNum(od.p_cup) ? k.pct(od.p_cup, 1) : '—', k.isNum(od.p_conf) ? 'reach the Final ' + k.pct(od.p_conf, 1) : '')
     ]);
+    const curS = k.curSeason();
+    h += '<div class="card"><div class="card-header">Strengths and needs <span class="card-sub">' + (Number(S) === Number(curS) ? 'Each position and unit graded against the league on projected value (rest-of-season GAR per 60 × projected ice time, in GAR over a full season); the three strongest and weakest, with ranked trade targets for each weakness.' : 'Built for the current season (' + k.esc(k.sLabel(curS)) + ') only.') + '</span></div><div id="tp-needs">' + (Number(S) === Number(curS) ? k.muted('Loading…') : '<div class="pad"><a href="' + k.teamHref(abbr) + '">' + k.esc(k.teamName(abbr)) + ' in ' + k.esc(k.sLabel(curS)) + ' →</a></div>') + '</div></div>';
     h += '<div class="grid-2"><div class="card"><div class="card-header">Playoff paths <span class="card-sub">Season simulation: the share of runs in which the team reaches each stage, its final points and where it is seeded.' + magicText(r, x) + '</span></div><div id="tp-odds"></div><div id="tp-pts" style="height:210px"></div><div id="tp-seed" style="height:210px"></div></div>' +
       '<div class="card"><div class="card-header">Special teams <span class="card-sub">Power play and penalty kill: results and the chances behind them, against the league.</span></div><div id="tp-st"></div></div></div>';
     h += '<div class="card"><div class="card-header">Form <span class="card-sub" id="tp-roll-sub">Rolling ten-game 5-on-5 xGF%, all-situations GF% and 5-on-5 CF%: process against results.</span></div><div id="tp-roll" class="gf-chart"></div></div>';
@@ -59,6 +61,7 @@ function render(el, params, state) {
     h += '<div class="card"><div class="card-header">Roster value <span class="card-sub">Rink value this season (goals above replacement) for the team\'s skaters and goalies in the catalogues. Click a player for his page.</span></div><div class="grid-2"><div id="tp-roster"></div><div id="tp-roster-c" style="height:380px"></div></div></div>';
     el.innerHTML = h;
     k.setMeta(k.esc(k.teamName(abbr)));
+    if (Number(S) === Number(curS)) k.loadY(S, 'needs/' + abbr + '.json').then(nd => { if (k.alive(el)) drawNeeds(abbr, S, nd); });
     playoffPaths(x, r, od, colour);
     specialTeams(x, r);
     unitHistory(x, r, colour);
@@ -69,6 +72,37 @@ function render(el, params, state) {
     rolling(x, colour);
     roster(abbr, res[4], res[5], S, colour);
   });
+}
+
+// ── strengths and needs (data/<S>/needs/<abbr>.json, analytics/value.py needs_payloads) ──────────────────
+
+const POS_ONE = { C: 'C', L: 'LW', R: 'RW', D: 'D', G: 'G' };
+function gradePill(g) { return g ? '<span class="nd-grade nd-' + String(g).toLowerCase() + '">' + K().esc(g) + '</span>' : '—'; }
+
+function drawNeeds(abbr, S, nd) {
+  const k = K();
+  const box = document.getElementById('tp-needs');
+  if (!box) return;
+  if (!k.ok(nd) || !nd.grades) { box.innerHTML = '<div class="pad">' + k.notBuilt('Strengths and needs', nd) + '</div>'; return; }
+  const full = nd.games_left !== undefined && nd.games_left !== null && nd.games_left === nd.games;
+  let h = '<div class="grid-2 nd-top"><div>' + k.table([{ label: 'Area' }, { label: 'Grade', align: 'center' }, { label: 'GAR', align: 'right', title: 'Projected GAR over a full season' }, { label: 'Rank', align: 'right' }, { label: 'Pct', align: 'center' }],
+    nd.grades.map(g => [{ v: g.label, html: k.esc(g.label) }, { v: g.pct, html: gradePill(g.grade) }, { v: g.value, html: k.num(g.value, 1) }, { v: g.rank, html: k.ordinal(g.rank) + ' of ' + g.n }, { v: g.pct, html: k.pill(g.pct) }]), { compact: true }) + '</div><div class="nd-list">' +
+    '<div class="nd-h">Strengths</div>' + (nd.strengths || []).map(s => '<div class="nd-item">' + gradePill(s.grade) + ' <strong>' + k.esc(s.label) + (s.relative ? ' <span class="muted-inline">(relative: below the league median)</span>' : '') + '</strong> <span class="muted-inline">' + k.esc(s.evidence) + '</span></div>').join('') +
+    '<div class="nd-h">Weaknesses</div>' + (nd.weaknesses || []).map(s => '<div class="nd-item">' + gradePill(s.grade) + ' <strong>' + k.esc(s.label) + (s.relative ? ' <span class="muted-inline">(relative: above the league median)</span>' : '') + '</strong> <span class="muted-inline">' + k.esc(s.evidence) + '</span></div>').join('') + '</div></div>';
+  (nd.weaknesses || []).forEach(w => {
+    const tg = w.targets || [];
+    const unit = ['C', 'L', 'R', 'D', 'G'].indexOf(w.key) >= 0 ? 'goals a game' : 'goals a game of ' + w.label.toLowerCase();
+    h += '<div class="nd-ways"><div class="nd-h">Ways to improve: ' + k.esc(w.label) + '</div>' + (tg.length ? '<div class="nd-tgs">' + tg.map(c => {
+      const pp = (x, lab) => (k.isNum(x) && Math.abs(x) >= 0.0005 ? ' · ' + lab + ' ' + k.signed(100 * x, 1) + ' pp' : '');
+      return '<div class="nd-tg' + (c.attainable ? ' nd-att' : '') + '"><div class="nd-tg-h">' + k.playerLink(c.id, c.name) + ' <span class="muted-inline">' + k.esc(c.team) + ' · ' + (POS_ONE[c.pos] || c.pos) + (k.isNum(c.age) ? ' · ' + k.num(c.age, 0) : '') + ' · ' + k.num(c.mpg, 1) + ' min · ' + k.num(c.rate, 2) + ' GAR/60</span>' + (c.attainable ? ' <span class="chip ok">attainable</span>' : '') + '</div>' +
+        '<div class="nd-tg-v"><strong>' + k.signed(c.gain, 3) + '</strong> ' + unit + (c.gain_net !== c.gain ? ' (' + k.signed(c.gain_net, 3) + ' net)' : '') + ' · ' + k.signed(c.gain_season, 1) + ' GAR over ' + k.int(nd.games_left) + ' games' + (k.isNum(c.pts) ? ' · ' + k.signed(c.pts, 1) + (full ? ' points a season' : ' points') : '') + pp(c.d_playoffs, 'playoffs') + pp(c.d_cup, 'Cup') + '</div>' +
+        ((c.hints || []).length ? '<div class="nd-hints">' + (c.hints || []).map(k.esc).join('; ') + '</div>' : '') +
+        '<div class="nd-tg-a"><a href="#/trade?t=' + encodeURIComponent(abbr) + ',' + encodeURIComponent(c.team) + '&m=' + encodeURIComponent(c.id) + '-' + encodeURIComponent(abbr) + '">Try in the trade simulator →</a></div></div>';
+    }).join('') + '</div>' : k.muted('No player on another club would add value here.')) + '</div>';
+  });
+  h += '<div class="pg-note gq-note">' + k.esc(nd.note || '') + ' Free agents: ' + k.esc(nd.free_agents || 'not identified.') + ' Targets are ranked by what each would add in the club\'s depth chart (displacing its lowest-rated ice time at that position; for a unit, by that part of GAR); "attainable" marks a seller out of contention or with depth at the position, and not one of its two most valuable players. ' + (full ? 'Points are over a full season.' : 'Points and odds come from the season simulation\'s sensitivity curves.') + '</div>';
+  box.innerHTML = h;
+  k.sortable(box);
 }
 
 function magicText(r, x) {

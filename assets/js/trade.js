@@ -279,7 +279,7 @@ function page(el, S, d, query, shown) {
     o += '<div class="tr-io"><div><span class="muted-inline">In</span> ' + (incoming.length ? incoming.map(p => k.playerLink(p.id, p.name) + ' <span class="muted-inline">' + (POS_ONE[p.pos] || '') + ', ' + k.num(p.rate, 2) + '/60</span>').join(', ') : '—') + '</div>' +
       '<div><span class="muted-inline">Out</span> ' + (outIds.length ? outIds.map(pid => k.playerLink(pid, nm(pid)) + ' <span class="muted-inline">' + (POS_ONE[byId[pid].pos] || '') + ', ' + k.num(byId[pid].rate, 2) + '/60</span>').join(', ') : '—') + '</div></div>';
     o += k.tiles([
-      k.tile('Rating', k.signed(res.delta, 3), (k.isNum(T.rating) ? k.signed(T.rating, 2) + ' → ' + k.signed(T.rating + res.delta, 2) + ' goals a game' : 'goals a game') + ' · ' + k.signed(dGoals, 1) + ' goals over ' + k.int(left) + ' games'),
+      k.tile('Rating', k.signed(res.delta, 2), (k.isNum(T.rating) ? k.signed(T.rating, 2) + ' → ' + k.signed(T.rating + res.delta, 2) + ' goals a game' : 'goals a game') + ' · ' + k.signed(dGoals, 1) + ' goals over ' + k.int(left) + ' games'),
       k.tile(left > 0 ? 'Points' : 'Points (season over)', dPts !== null ? k.signed(dPts, 1) : '—', (k.isNum(T.exp_pts) && dPts !== null ? k.num(T.exp_pts, 1) + ' → ' + k.num(T.exp_pts + dPts, 1) + ' expected' : (noSim ? 'no simulation' : '')) + (range !== null && Math.abs(res.delta) > range ? ' · beyond the curve' : '')),
       k.tile('GAR in − out', k.signed(garIn - garOut, 1), 'over ' + k.int(left) + ' games at their ice time'),
       k.tile('Next season', k.signed(dNext, 1), 'GAR, aging applied')

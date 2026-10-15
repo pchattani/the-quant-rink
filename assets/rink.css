@@ -203,3 +203,4 @@ tr.tr-sel td { background: rgba(92, 198, 242, 0.14); }
 .nd-a { background: #3fb950; } .nd-b { background: #39d0d8; } .nd-c { background: #8b949e; } .nd-d { background: #f0883e; } .nd-f { background: #f85149; }
 #tp-needs .pg-note { padding: 8px 14px 12px; }
 @media (max-width: 760px) { .nd-tgs { grid-template-columns: 1fr; } .nd-top, .nd-ways { padding: 0 8px; } }
+#tr-out .gq-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -49,6 +49,7 @@ function render(el, params, state) {
     ]);
     const curS = k.curSeason();
     h += '<div class="card"><div class="card-header">Strengths and needs <span class="card-sub">' + (Number(S) === Number(curS) ? 'Each position and unit graded against the league on projected value (rest-of-season GAR per 60 × projected ice time, in GAR over a full season); the three strongest and weakest, with ranked trade targets for each weakness.' : 'Built for the current season (' + k.esc(k.sLabel(curS)) + ') only.') + '</span></div><div id="tp-needs">' + (Number(S) === Number(curS) ? k.muted('Loading…') : '<div class="pad"><a href="' + k.teamHref(abbr) + '">' + k.esc(k.teamName(abbr)) + ' in ' + k.esc(k.sLabel(curS)) + ' →</a></div>') + '</div></div>';
+    if (Number(S) === Number(curS) && RK.moves) h += '<div class="card"><div class="card-header">Ledger <span class="card-sub">The club\'s transactions of the last twelve months and every trade graded: value received at the time (our multi-season valuation as of the trade date), realised since and the current view, in WAR. On-field model value, not contracts or the cap.</span></div><div id="tp-ledger">' + k.muted('Loading…') + '</div></div>';
     h += '<div class="grid-2"><div class="card"><div class="card-header">Playoff paths <span class="card-sub">Season simulation: the share of runs in which the team reaches each stage, its final points and where it is seeded.' + magicText(r, x) + '</span></div><div id="tp-odds"></div><div id="tp-pts" style="height:210px"></div><div id="tp-seed" style="height:210px"></div></div>' +
       '<div class="card"><div class="card-header">Special teams <span class="card-sub">Power play and penalty kill: results and the chances behind them, against the league.</span></div><div id="tp-st"></div></div></div>';
     h += '<div class="card"><div class="card-header">Form <span class="card-sub" id="tp-roll-sub">Rolling ten-game 5-on-5 xGF%, all-situations GF% and 5-on-5 CF%: process against results.</span></div><div id="tp-roll" class="gf-chart"></div></div>';
@@ -62,6 +63,7 @@ function render(el, params, state) {
     el.innerHTML = h;
     k.setMeta(k.esc(k.teamName(abbr)));
     if (Number(S) === Number(curS)) k.loadY(S, 'needs/' + abbr + '.json').then(nd => { if (k.alive(el)) drawNeeds(abbr, S, nd); });
+    if (Number(S) === Number(curS) && RK.moves) RK.moves.ledger(document.getElementById('tp-ledger'), abbr);
     playoffPaths(x, r, od, colour);
     specialTeams(x, r);
     unitHistory(x, r, colour);

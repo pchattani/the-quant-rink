@@ -26,6 +26,8 @@ function why(k, r) {
 function render(el, params, state) {
   const k = K();
   el.innerHTML = k.muted('Loading…');
+  const q0 = (params && params.query) || {};
+  if (q0.tab === 'val' && RK.valuation) return RK.valuation.render(el);
   return k.ready().then(() => {
     const S = k.S(params, state);
     const q = (params && params.query) || {};
@@ -36,6 +38,7 @@ function render(el, params, state) {
       const v = res[0];
       if (!k.ok(v) || !(v.rows || []).length) { el.innerHTML = k.card('Player value ' + k.sLabel(S), '', '<div class="pad">' + k.notBuilt('Player value for ' + k.sLabel(S), v) + '</div>'); return; }
       draw(el, S, v);
+      if (RK.valuation) el.insertAdjacentHTML('afterbegin', RK.valuation.tabs(S, 'season'));
     });
   });
 }

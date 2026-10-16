@@ -602,6 +602,12 @@ function projection(ctx) {
   const k = K(), host = document.getElementById('pp-proj');
   if (!host) return;
   const pr = ctx.cur.projection || ctx.career.projection;
+  if (RK.valuation && RK.valuation.playerLine) {
+    RK.valuation.playerLine(ctx.pid).then(r => {
+      if (!r || !host.isConnected) return;
+      host.insertAdjacentHTML('beforeend', '<div class="pg-note gq-note"><strong>Multi-season valuation</strong>: ' + k.num(r.total, 1) + ' WAR over the rest of this season and the next three, discounted (10th–90th percentile ' + k.num(r.p10, 1) + ' to ' + k.num(r.p90, 1) + '); ' + k.num(r.now, 2) + ' this season, ' + k.num(r.next, 2) + ' next; ' + k.num(r.vorp, 1) + ' over replacement at his position. <a href="#/value?tab=val">Valuation →</a></div>');
+    }, () => { /* no valuation payload */ });
+  }
   if (!pr || typeof pr !== 'object' || pr.ok === false) { host.innerHTML = k.muted('No projection yet.'); return; }
   const blocks = [];
   const one = (obj, title) => {

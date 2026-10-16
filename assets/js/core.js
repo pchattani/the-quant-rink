@@ -11,6 +11,7 @@
  *   #/skaters  #/goalies  #/player/<pid>  #/lines  #/leaders  #/history  #/lab  #/compare[/<a>[/<b>]]
  *   #/markets  #/calibration  #/glossary[/<key>]  #/methodology  #/disclaimer
  *   #/value  #/trade                    player value (GAR, WAR) and the trade simulator (state in ?t=&m=)
+ *   #/value?tab=val  #/moves  #/fantasy  multi-season valuation, transactions and trade grades, fantasy
  *
  * Season: every page reads RK.state.season (an 8-digit NHL season id, a Number: 20262027). It comes
  * from the route (#/standings/<S>, #/playoffs/<S>), the game id (#/game/<id>), else a "?s=<S>" query
@@ -157,6 +158,8 @@ addRoute('player/:id', 'player');
 addRoute('lines', 'lines');
 addRoute('value', 'value');
 addRoute('trade', 'trade');
+addRoute('moves', 'moves');
+addRoute('fantasy', 'fantasy');
 addRoute('leaders', 'leaders');
 addRoute('history', 'history');
 addRoute('lab', 'lab');
@@ -176,11 +179,11 @@ const ALIAS_SEGS = { schedule: 'games', scores: 'games', scoreboard: 'games', po
   leaderboards: 'leaders', players: 'skaters' };
 const TITLES = {
   hub: 'Hub', games: 'Games', game: 'Game centre', standings: 'Standings', playoffs: 'Playoffs', teams: 'Teams', team: 'Team',
-  skaters: 'Skaters', goalies: 'Goalies', player: 'Player', lines: 'Lines', value: 'Player value', trade: 'Trade simulator', leaders: 'Leaders', history: 'History', lab: 'Lab',
+  skaters: 'Skaters', goalies: 'Goalies', player: 'Player', lines: 'Lines', value: 'Player value', trade: 'Trade simulator', moves: 'Moves', fantasy: 'Fantasy', leaders: 'Leaders', history: 'History', lab: 'Lab',
   compare: 'Compare', markets: 'Markets', calibration: 'Calibration', glossary: 'Glossary', methodology: 'Methodology', disclaimer: 'Disclaimer & terms'
 };
 const NAV_OF = { hub: 'hub', games: 'games', game: 'games', standings: 'standings', playoffs: 'playoffs', teams: 'teams', team: 'teams',
-  skaters: 'skaters', goalies: 'goalies', player: 'skaters', lines: 'lines', value: 'value', trade: 'trade', leaders: 'leaders', history: 'history', lab: 'lab',
+  skaters: 'skaters', goalies: 'goalies', player: 'skaters', lines: 'lines', value: 'value', trade: 'trade', moves: 'moves', fantasy: 'fantasy', leaders: 'leaders', history: 'history', lab: 'lab',
   compare: 'compare', markets: 'markets', calibration: 'calibration', glossary: 'glossary', methodology: 'methodology' };
 
 function normPattern(s) {
